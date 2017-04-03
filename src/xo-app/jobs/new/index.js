@@ -257,8 +257,8 @@ export default class Jobs extends Component {
 
   _handleSubmit = () => {
     const {name, method, params} = this.refs
-    const { job, owner } = this.state
 
+    const { job, owner, timeout } = this.state
     const _job = {
       type: 'call',
       name: name.value,
@@ -268,7 +268,8 @@ export default class Jobs extends Component {
         type: 'crossProduct',
         items: dataToParamVectorItems(method.value.info.properties, params.value)
       },
-      userId: owner
+      userId: owner,
+      timeout: timeout ? timeout * 1e3 : undefined
     }
 
     job && (_job.id = job.id)
@@ -286,11 +287,12 @@ export default class Jobs extends Component {
     }
 
     const {name, method} = this.refs
+    const action = find(actions, action => action.method === job.method)
     name.value = job.name
-    method.value = job.method
+    method.value = action
     this.setState({
       job,
-      action: find(actions, action => action.method === job.method)
+      action
     }, () => delay(this._populateForm, 250, job)) // Work around.
     // Without the delay, some selects are not always ready to load a value
     // Values are displayed, but html5 compliant browsers say the value is required and empty on submit
@@ -319,7 +321,10 @@ export default class Jobs extends Component {
     }
     const { params } = this.refs
     params.value = data
-    this.setState({ owner: job.userId })
+    this.setState({
+      owner: job.userId,
+      timeout: job.timeout && job.timeout / 1e3
+    })
   }
 
   _reset = () => {
@@ -329,7 +334,8 @@ export default class Jobs extends Component {
     this.setState({
       action: undefined,
       job: undefined,
-      owner: undefined
+      owner: undefined,
+      timeout: ''
     })
   }
 
@@ -350,13 +356,14 @@ export default class Jobs extends Component {
     type === 'user' && permission === 'admin'
 
   render () {
+    const { state } = this
     const {
       action,
       actions,
       job,
       jobs,
       owner
-    } = this.state
+    } = state
     const { formatMessage } = this.props.intl
 
     const isJobUserMissing = this._getIsJobUserMissing()
@@ -373,6 +380,7 @@ export default class Jobs extends Component {
         />
         <input type='text' ref='name' className='form-control mb-1 mt-1' placeholder={formatMessage(messages.jobNamePlaceholder)} pattern='[^_]+' required />
         <SelectPlainObject ref='method' options={actions} optionKey='method' onChange={this._handleSelectMethod} placeholder={_('jobActionPlaceHolder')} />
+        <input type='number' onChange={this.linkState('timeout')} value={state.timeout} className='form-control mb-1 mt-1' placeholder='Job timeout (seconds)' />
         {action && <fieldset>
           <GenericInput ref='params' schema={action.info} uiSchema={action.uiSchema} label={action.method} required />
           {job && <p className='text-warning'>{_('jobEditMessage', { name: job.name, id: job.id.slice(4, 8) })}</p>}

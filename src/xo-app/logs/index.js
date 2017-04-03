@@ -3,6 +3,7 @@ import ActionButton from 'action-button'
 import ActionRowButton from 'action-row-button'
 import classnames from 'classnames'
 import forEach from 'lodash/forEach'
+import get from 'lodash/get'
 import Icon from 'icon'
 import includes from 'lodash/includes'
 import map from 'lodash/map'
@@ -53,7 +54,7 @@ class JobParam extends Component {
 
     return object
     ? <span><strong>{object.type || paramKey}</strong>: {renderXoItem(object)} </span>
-    : <span><strong>{paramKey}:</strong> {id} </span>
+    : <span><strong>{paramKey}:</strong> {String(id)} </span>
   }
 }
 
@@ -71,8 +72,8 @@ class JobReturn extends Component {
 
 const Log = props => <ul className='list-group'>
   {map(props.log.calls, call => <li key={call.callKey} className='list-group-item'>
-    <strong className='text-info'>{call.method}: </strong>
-    {map(call.params, (value, key) => <JobParam id={value} paramKey={key} key={key} />)}
+    <strong className='text-info'>{call.method}: </strong><br />
+    {map(call.params, (value, key) => [ <JobParam id={value} paramKey={key} key={key} />, <br /> ])}
     {call.returnedValue && <span>{' '}<JobReturn id={call.returnedValue} /></span>}
     {call.error &&
       <span className='text-danger'>
@@ -86,7 +87,7 @@ const Log = props => <ul className='list-group'>
   </li>)}
 </ul>
 
-const showCalls = log => alert(<span>{_('job')} {log.jobId}</span>, <Log log={log} />)
+const showCalls = log => alert(_('jobModalTitle', { job: log.jobId }), <Log log={log} />)
 
 const LOG_COLUMNS = [
   {
@@ -95,9 +96,14 @@ const LOG_COLUMNS = [
     sortCriteria: log => log.jobId
   },
   {
-    name: _('job'),
+    name: _('jobType'),
     itemRenderer: log => jobKeyToLabel[log.key],
     sortCriteria: log => log.key
+  },
+  {
+    name: _('jobTag'),
+    itemRenderer: log => get(log, 'calls[0].params.tag'),
+    sortCriteria: log => get(log, 'calls[0].params.tag')
   },
   {
     name: _('jobStart'),
@@ -109,7 +115,7 @@ const LOG_COLUMNS = [
     default: true,
     name: _('jobEnd'),
     itemRenderer: log => log.end && <FormattedDate value={new Date(log.end)} month='short' day='numeric' year='numeric' hour='2-digit' minute='2-digit' second='2-digit' />,
-    sortCriteria: log => log.end,
+    sortCriteria: log => log.end || log.start,
     sortOrder: 'desc'
   },
   {

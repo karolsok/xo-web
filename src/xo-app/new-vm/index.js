@@ -1,29 +1,14 @@
 import _, { messages } from 'intl'
 import ActionButton from 'action-button'
 import BaseComponent from 'base-component'
-import clamp from 'lodash/clamp'
 import classNames from 'classnames'
 import DebounceInput from 'react-debounce-input'
-import every from 'lodash/every'
-import filter from 'lodash/filter'
-import find from 'lodash/find'
-import forEach from 'lodash/forEach'
-import get from 'lodash/get'
 import getEventValue from 'get-event-value'
 import Icon from 'icon'
-import includes from 'lodash/includes'
-import isArray from 'lodash/isArray'
-import isEmpty from 'lodash/isEmpty'
 import isIp from 'is-ip'
-import join from 'lodash/join'
-import map from 'lodash/map'
 import Page from '../page'
 import React from 'react'
-import size from 'lodash/size'
-import slice from 'lodash/slice'
 import store from 'store'
-import sum from 'lodash/sum'
-import sumBy from 'lodash/sumBy'
 import Tags from 'tags'
 import Tooltip from 'tooltip'
 import Wizard, { Section } from 'wizard'
@@ -31,6 +16,23 @@ import { Button } from 'react-bootstrap-4/lib'
 import { Container, Row, Col } from 'grid'
 import { injectIntl } from 'react-intl'
 import { Limits } from 'usage'
+import {
+  clamp,
+  every,
+  filter,
+  find,
+  forEach,
+  get,
+  includes,
+  isArray,
+  isEmpty,
+  join,
+  map,
+  slice,
+  size,
+  sum,
+  sumBy
+} from 'lodash'
 import {
   addSshKey,
   createVm,
@@ -43,6 +45,7 @@ import {
   XEN_DEFAULT_CPU_WEIGHT
 } from 'xo'
 import {
+  SelectHost,
   SelectIp,
   SelectNetwork,
   SelectPool,
@@ -202,7 +205,8 @@ class Vif extends BaseComponent {
       return user && user.preferences && user.preferences.sshKeys
     },
     keys => keys
-  )
+  ),
+  srs: createGetObjectsOfType('SR')
 }))
 @injectIntl
 export default class NewVm extends BaseComponent {
@@ -276,6 +280,7 @@ export default class NewVm extends BaseComponent {
       VDIs: [],
       VIFs: [],
       seqStart: 1,
+      share: false,
       tags: []
     })
   }
@@ -346,6 +351,7 @@ export default class NewVm extends BaseComponent {
     const resourceSet = this._getResourceSet()
 
     const data = {
+      affinityHost: state.affinityHost && state.affinityHost.id,
       clone: !this.isDiskTemplate && state.fastClone,
       existingDisks: state.existingDisks,
       installation,
@@ -365,6 +371,7 @@ export default class NewVm extends BaseComponent {
       pv_args: state.pv_args,
       autoPoweron: state.autoPoweron,
       bootAfterCreate: state.bootAfterCreate,
+      share: state.share,
       cloudConfig,
       coreOs: state.template.name_label === 'CoreOS',
       tags: state.tags
@@ -542,6 +549,26 @@ export default class NewVm extends BaseComponent {
     this._getCanOperate,
     [ (pool, canOperate) => canOperate(pool) ]
   )
+  _getAffinityHostPredicate = createSelector(
+    () => this.props.pool,
+    () => this.state.state.existingDisks,
+    () => this.state.state.VDIs,
+    () => this.props.srs,
+    (pool, existingDisks, VDIs, srs) => {
+      if (!srs) {
+        return false
+      }
+
+      const containers = [
+        ...map(existingDisks, disk => get(srs, `${disk.$SR}.$container`)),
+        ...map(VDIs, disk => get(srs, `${disk.SR}.$container`))
+      ]
+      return host => host.$pool === pool.id &&
+        every(containers, container =>
+          container === pool.id || container === host.id
+        )
+    }
+  )
   _getDefaultNetworkId = () => {
     const resourceSet = this._getResolvedResourceSet()
     if (resourceSet) {
@@ -647,7 +674,7 @@ export default class NewVm extends BaseComponent {
 
     this.context.router.push({
       pathname,
-      query: { resourceSet: resourceSet.id }
+      query: resourceSet && { resourceSet: resourceSet.id }
     })
     this._reset()
   }
@@ -656,7 +683,7 @@ export default class NewVm extends BaseComponent {
 
     this.context.router.push({
       pathname,
-      query: { pool: pool.id }
+      query: pool && { pool: pool.id }
     })
     this._reset()
   }
@@ -1195,18 +1222,6 @@ export default class NewVm extends BaseComponent {
                 />}
               </span>
             </Item>
-            {' '}
-            <Item className='checkbox'>
-              <label>
-                <input
-                  checked={!!vdi.bootable}
-                  onChange={this._getOnChangeCheckbox('VDIs', index, 'bootable')}
-                  type='checkbox'
-                />
-                {' '}
-                {_('newVmBootableLabel')}
-              </label>
-            </Item>
             <Item label={_('newVmNameLabel')}>
               <DebounceInput
                 className='form-control'
@@ -1259,6 +1274,7 @@ export default class NewVm extends BaseComponent {
 
   _renderAdvanced = () => {
     const {
+      affinityHost,
       autoPoweron,
       bootAfterCreate,
       cpuCap,
@@ -1271,6 +1287,7 @@ export default class NewVm extends BaseComponent {
       namePattern,
       nbVms,
       seqStart,
+      share,
       showAdvanced,
       tags
     } = this.state.state
@@ -1304,6 +1321,17 @@ export default class NewVm extends BaseComponent {
           </Item>
           <Item className={styles.tags}>
             <Tags labels={tags} onChange={this._linkState('tags')} />
+          </Item>
+        </SectionContent>,
+        <SectionContent>
+          <Item>
+            <input
+              checked={share}
+              onChange={this._getOnChangeCheckbox('share')}
+              type='checkbox'
+            />
+            &nbsp;
+            {_('newVmShare')}
           </Item>
         </SectionContent>,
         <SectionContent>
@@ -1397,6 +1425,15 @@ export default class NewVm extends BaseComponent {
               </Item>
             )}
           </LineItem>}
+        </SectionContent>,
+        <SectionContent>
+          <Item label={_('newVmAffinityHost')}>
+            <SelectHost
+              onChange={this._linkState('affinityHost')}
+              predicate={this._getAffinityHostPredicate()}
+              value={affinityHost}
+            />
+          </Item>
         </SectionContent>
       ]}
     </Section>

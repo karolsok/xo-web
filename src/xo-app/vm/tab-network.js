@@ -13,21 +13,26 @@ import map from 'lodash/map'
 import propTypes from 'prop-types'
 import React from 'react'
 import remove from 'lodash/remove'
+import StateButton from 'state-button'
 import TabButton from 'tab-button'
 import Tooltip from 'tooltip'
-import { addSubscriptions, connectStore, noop } from 'utils'
 import { isIp, isIpV4 } from 'ip'
-import { ButtonGroup } from 'react-bootstrap-4/lib'
 import { Container, Row, Col } from 'grid'
+import { injectIntl } from 'react-intl'
+import { SelectNetwork, SelectIp, SelectResourceSetIp } from 'select-objects'
+import { XoSelect, Text } from 'editable'
+import {
+  addSubscriptions,
+  connectStore,
+  EMPTY_ARRAY,
+  noop
+} from 'utils'
 import {
   createFinder,
   createGetObject,
   createGetObjectsOfType,
   createSelector
 } from 'selectors'
-import { injectIntl } from 'react-intl'
-import { SelectNetwork, SelectIp, SelectResourceSetIp } from 'select-objects'
-import { XoSelect, Text } from 'editable'
 
 import {
   connectVif,
@@ -106,8 +111,8 @@ class VifItem extends BaseComponent {
   }
 
   _getIps = createSelector(
-    () => this.props.vif.allowedIpv4Addresses,
-    () => this.props.vif.allowedIpv6Addresses,
+    () => this.props.vif.allowedIpv4Addresses || EMPTY_ARRAY,
+    () => this.props.vif.allowedIpv6Addresses || EMPTY_ARRAY,
     concat
   )
   _getIpPredicate = createSelector(
@@ -238,44 +243,30 @@ class VifItem extends BaseComponent {
         </Container>
       </td>
       <td>
-        {vif.attached
-          ? <span>
-            <span className='tag tag-success'>
-              {_('vifStatusConnected')}
-            </span>
-            <ButtonGroup className='pull-right'>
-              <ActionRowButton
-                handler={disconnectVif}
-                handlerParam={vif}
-                icon='disconnect'
-                tooltip={_('vifDisconnect')}
-              />
-            </ButtonGroup>
-          </span>
-          : <span>
-            <span className='tag tag-default'>
-              {_('vifStatusDisconnected')}
-            </span>
-            <ButtonGroup className='pull-right'>
-              {isVmRunning &&
-                <ActionRowButton
-                  handler={connectVif}
-                  handlerParam={vif}
-                  icon='connect'
-                  tooltip={_('vifConnect')}
-                />
-              }
-              <ActionRowButton
-                handler={deleteVif}
-                handlerParam={vif}
-                icon='remove'
-                tooltip={_('vifRemove')}
-              />
-            </ButtonGroup>
-          </span>
-        }
+        <StateButton
+          disabledLabel={_('vifStatusDisconnected')}
+          disabledHandler={isVmRunning && connectVif}
+          disabledTooltip={_('vifConnect')}
+
+          enabledLabel={_('vifStatusConnected')}
+          enabledHandler={disconnectVif}
+          enabledTooltip={_('vifDisconnect')}
+
+          handlerParam={vif}
+          state={vif.attached}
+        />
         {' '}
         {this._getNetworkStatus()}
+      </td>
+      <td className='text-xs-right'>
+        {!vif.attached &&
+          <ActionRowButton
+            handler={deleteVif}
+            handlerParam={vif}
+            icon='remove'
+            tooltip={_('vifRemove')}
+          />
+        }
       </td>
     </tr>
   }
@@ -408,6 +399,7 @@ export default class TabNetwork extends BaseComponent {
                     <th>{_('vifNetworkLabel')}</th>
                     <th>{_('vifAllowedIps')}</th>
                     <th>{_('vifStatusLabel')}</th>
+                    <th className='text-xs-right'>{_('vifAction')}</th>
                   </tr>
                 </thead>
                 <tbody>

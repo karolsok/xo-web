@@ -94,12 +94,14 @@ export default class HostStats extends Component {
       : process.env.XOA_PLAN > 2
         ? <Container>
           <Row>
-            <Col mediumSize={6}>
+            <Col mediumSize={5}>
               <div className='form-group'>
                 <Tooltip content={_('useStackedValuesOnStats')}>
                   <Toggle value={useCombinedValues} onChange={this.linkState('useCombinedValues')} />
                 </Tooltip>
               </div>
+            </Col>
+            <Col mediumSize={1}>
               {selectStatsLoading && (
                 <div className='text-xs-right'>
                   <Icon icon='loading' size={2} />

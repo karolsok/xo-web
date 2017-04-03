@@ -22,11 +22,10 @@ import {
 
 import TabAdvanced from './tab-advanced'
 import TabGeneral from './tab-general'
+import TabStats from './tab-stats'
 import TabLogs from './tab-logs'
 import TabNetwork from './tab-network'
-import TabHosts from './tab-host'
 import TabPatches from './tab-patches'
-import TabStorage from './tab-storage'
 
 // ===================================================================
 
@@ -36,8 +35,7 @@ import TabStorage from './tab-storage'
   logs: TabLogs,
   network: TabNetwork,
   patches: TabPatches,
-  hosts: TabHosts,
-  storage: TabStorage
+  stats: TabStats
 })
 @connectStore(() => {
   const getPool = createGetObject()
@@ -132,9 +130,8 @@ export default class Pool extends Component {
         <Col>
           <NavTabs>
             <NavLink to={`/pools/${pool.id}/general`}>{_('generalTabName')}</NavLink>
-            <NavLink to={`/pools/${pool.id}/hosts`}>{_('hostsTabName')}</NavLink>
+            <NavLink to={`/pools/${pool.id}/stats`}>{_('statsTabName')}</NavLink>
             <NavLink to={`/pools/${pool.id}/network`}>{_('networkTabName')}</NavLink>
-            <NavLink to={`/pools/${pool.id}/storage`}>{_('storageTabName')}</NavLink>
             <NavLink to={`/pools/${pool.id}/patches`}>{_('patchesTabName')}</NavLink>
             <NavLink to={`/pools/${pool.id}/logs`}>{_('logsTabName')}</NavLink>
             <NavLink to={`/pools/${pool.id}/advanced`}>{_('advancedTabName')}</NavLink>

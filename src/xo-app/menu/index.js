@@ -25,7 +25,6 @@ import {
   createFilter,
   createGetObjectsOfType,
   createSelector,
-  getLang,
   getStatus,
   getUser,
   isAdmin
@@ -35,11 +34,6 @@ import styles from './index.css'
 
 @connectStore(() => ({
   isAdmin,
-  // FIXME: remove when fixed in React.
-  //
-  // There are currently issues between context updates (used by
-  // react-intl) and pure components.
-  lang: getLang,
   nTasks: createGetObjectsOfType('task').count(
     [ task => task.status === 'pending' ]
   ),
@@ -135,7 +129,8 @@ export default class Menu extends Component {
       isAdmin && { to: '/backup/overview', icon: 'menu-backup', label: 'backupPage', subMenu: [
         { to: '/backup/overview', icon: 'menu-backup-overview', label: 'backupOverviewPage' },
         { to: '/backup/new', icon: 'menu-backup-new', label: 'backupNewPage' },
-        { to: '/backup/restore', icon: 'menu-backup-restore', label: 'backupRestorePage' }
+        { to: '/backup/restore', icon: 'menu-backup-restore', label: 'backupRestorePage' },
+        { to: '/backup/file-restore', icon: 'menu-backup-file-restore', label: 'backupFileRestorePage' }
       ]},
       isAdmin && { to: '/xoa-update', icon: 'menu-update', label: 'updatePage', extra: <UpdateTag /> },
       isAdmin && { to: '/settings/servers', icon: 'menu-settings', label: 'settingsPage', subMenu: [
@@ -156,6 +151,7 @@ export default class Menu extends Component {
       ]},
       { to: '/about', icon: 'menu-about', label: 'aboutPage' },
       { to: '/tasks', icon: 'task', label: 'taskMenu', pill: nTasks },
+      isAdmin && { to: '/xosan', icon: 'menu-xosan', label: 'xosan' },
       !(noOperatablePools && noResourceSets) && { to: '/vms/new', icon: 'menu-new', label: 'newMenu', subMenu: [
         { to: '/vms/new', icon: 'menu-new-vm', label: 'newVmPage' },
         isAdmin && { to: '/new/sr', icon: 'menu-new-sr', label: 'newSrPage' },

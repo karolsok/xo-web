@@ -1,3 +1,5 @@
+import './patch-react'
+
 import DevTools from 'store/dev-tools'
 import hashHistory from 'react-router/lib/hashHistory'
 import React from 'react'
@@ -7,15 +9,6 @@ import { Provider } from 'react-redux'
 import { render } from 'react-dom'
 
 import XoApp from './xo-app'
-
-if (
-  typeof window !== 'undefined' &&
-  typeof window.addEventListener === 'function'
-) {
-  window.addEventListener('unhandledRejection', reason => {
-    console.error(reason)
-  })
-}
 
 render(
   <Provider store={store}>

@@ -104,7 +104,10 @@ class VmData extends Component {
       })),
       memory: +refs.memory.value,
       nameLabel: refs.nameLabel.value,
-      networks: map(props.networks, (_, networkId) => refs[`network-${networkId}`].value.id),
+      networks: map(props.networks, (_, networkId) => {
+        const network = refs[`network-${networkId}`].value
+        return network.id ? network.id : network
+      }),
       nCpus: +refs.nCpus.value
     }
   }
@@ -300,12 +303,12 @@ export default class Import extends Component {
                 <FormGrid.LabelCol>{_('vmImportToSr')}</FormGrid.LabelCol>
                 <FormGrid.InputCol>
                   <SelectSr
-                    disabled={!sr}
+                    disabled={!pool}
                     onChange={this._handleSelectedSr}
                     predicate={srPredicate}
                     required
                     value={sr}
-                />
+                  />
                 </FormGrid.InputCol>
               </FormGrid.Row>
               {sr && (

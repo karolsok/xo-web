@@ -128,6 +128,10 @@
     @extend .fa;
     @extend .fa-map-marker;
   }
+  &-file {
+    @extend .fa;
+    @extend .fa-file-o;
+  }
 
   &-shown {
     @extend .fa;
@@ -195,7 +199,7 @@
 
   &-cpu {
     @extend .fa;
-    @extend .fa-dashboard;
+    @extend .fa-microchip;
   }
   &-memory {
     @extend .fa;
@@ -674,6 +678,10 @@
       @extend .fa;
       @extend .fa-upload;
     }
+    &-file-restore {
+      @extend .fa;
+      @extend .fa-file-o;
+    }
   }
   &-menu-jobs {
     @extend .fa;
@@ -746,6 +754,10 @@
       @extend .fa;
       @extend .fa-file-archive-o;
     }
+  }
+  &-menu-xosan {
+    @extend .fa;
+    @extend .fa-database;
   }
   // New VM
   &-new-vm {

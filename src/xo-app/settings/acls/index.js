@@ -10,6 +10,7 @@ import map from 'lodash/map'
 import pickBy from 'lodash/pickBy'
 import React from 'react'
 import renderXoItem, { renderXoItemFromId } from 'render-xo-item'
+import some from 'lodash/some'
 import SortedTable from 'sorted-table'
 import toArray from 'lodash/toArray'
 import Upgrade from 'xoa-upgrade'
@@ -72,10 +73,12 @@ const ACL_COLUMNS = [
     createGetObjectsOfType('pool'),
     createGetObjectsOfType('SR'),
     createGetObjectsOfType('VM'),
-    (hosts, networks, pools, srs, vms) => ({
+    createGetObjectsOfType('VM-snapshot'),
+    (hosts, networks, pools, srs, vms, snapshots) => ({
       ...keyBy(hosts, 'id'),
       ...keyBy(networks, 'id'),
       ...keyBy(pools, 'id'),
+      ...keyBy(snapshots, 'id'),
       ...keyBy(srs, 'id'),
       ...keyBy(vms, 'id')
     })
@@ -95,7 +98,7 @@ class AclTable extends Component {
           object: xoObjects[object] || object,
           action: roles[action] || action
         })),
-        ({ subject, object, action }) => subject && object && action
+        ({ subject, object, action }) => subject && object && action && object.type !== 'VM-snapshot'
       )
       this.setState({
         resolvedAcls
@@ -140,32 +143,61 @@ export default class Acls extends Component {
   constructor (props) {
     super(props)
     this.state = {
-      isAllSelected: {},
-      subjects: [],
+      action: '',
       objects: [],
-      role: undefined
+      subjects: [],
+      typeFilters: {}
     }
   }
 
-  _handleSelectObjects = objects => this.setState({objects})
-  _handleSelectRole = action => this.setState({action})
-  _handleSelectSubject = subjects => this.setState({subjects})
+  _toggleTypeFilter = type => {
+    const {
+      someTypeFilters,
+      typeFilters,
+      objects
+    } = this.state
 
-  _toggleAll = type => {
-    const { isAllSelected, objects } = this.state
-    let newObjects
-    if (!isAllSelected[type]) {
-      newObjects = [ ...objects, ...toArray(createGetObjectsOfType(type)(store.getState())) ]
-    } else {
-      newObjects = filter(objects, object => object.type !== type)
+    const newTypeFilters = { ...typeFilters, [type]: !typeFilters[type] }
+    const newSomeTypeFilters = some(newTypeFilters)
+
+    // If some objects need to be removed from the selected objects
+    if (!newTypeFilters[type] || !someTypeFilters && newSomeTypeFilters) {
+      this.setState({
+        objects: filter(objects, ({ type }) => !newSomeTypeFilters || newTypeFilters[type])
+      })
     }
-    this.refs.selectObject.value = newObjects
+
     this.setState({
-      objects: newObjects,
-      isAllSelected: {
-        ...isAllSelected,
-        [type]: !isAllSelected[type] }
+      typeFilters: { ...typeFilters, [type]: !typeFilters[type] },
+      someTypeFilters: some(newTypeFilters)
+    }, () => {
+      // If some objects need to be removed from the selected objects
+      if (!this.state.typeFilters[type] || !someTypeFilters && this.state.someTypeFilters) {
+        this.setState({
+          objects: filter(objects, this._getObjectPredicate())
+        })
+      }
     })
+  }
+
+  _getObjectPredicate = createSelector(
+    () => this.state.typeFilters,
+    () => this.state.someTypeFilters,
+    (typeFilters, someTypeFilters) => ({ type }) =>
+      !someTypeFilters || typeFilters[type]
+  )
+
+  _selectAll = () => {
+    const { someTypeFilters, typeFilters } = this.state
+
+    const objects = []
+    forEach(TYPES, type => {
+      if (!someTypeFilters || typeFilters[type]) {
+        const typeObjects = createGetObjectsOfType(type)(store.getState())
+        objects.push(...toArray(typeObjects))
+      }
+    })
+    this.setState({ objects })
   }
 
   _addAcl = async () => {
@@ -182,10 +214,12 @@ export default class Acls extends Component {
         })
       })
       await Promise.all(promises)
-      const { selectSubject, selectObject, selectAction } = this.refs
-      selectSubject.value = []
-      selectObject.value = []
-      selectAction.value = ''
+
+      this.setState({
+        subjects: [],
+        objects: [],
+        action: ''
+      })
     } catch (err) {
       error('Add ACL(s)', err.message || String(err))
     }
@@ -193,7 +227,7 @@ export default class Acls extends Component {
 
   render () {
     const {
-      isAllSelected,
+      typeFilters,
       objects,
       action,
       subjects
@@ -203,20 +237,29 @@ export default class Acls extends Component {
       ? <Container>
         <form>
           <div className='form-group'>
-            <SelectSubject ref='selectSubject' multi onChange={this._handleSelectSubject} />
+            <SelectSubject multi onChange={this.linkState('subjects')} value={subjects} />
           </div>
           <div className='form-group'>
-            <SelectHighLevelObject ref='selectObject' multi onChange={this._handleSelectObjects} />
+            <SelectHighLevelObject multi onChange={this.linkState('objects')} value={objects} predicate={this._getObjectPredicate()} />
           </div>
-          <div className='form-group'>
-            <ButtonGroup className='pb-1'>
+          <div className='form-group mb-1'>
+            <ButtonGroup className='mr-1'>
               {map(TYPES, type =>
-                <ActionButton tooltip={_('settingsAclsButtonTooltip' + type)} key={type} btnStyle={isAllSelected[type] ? 'success' : 'secondary'} size='small' icon={type.toLowerCase()} handler={this._toggleAll} handlerParam={type} />
+                <ActionButton
+                  btnStyle={typeFilters[type] ? 'success' : 'secondary'}
+                  handler={this._toggleTypeFilter}
+                  handlerParam={type}
+                  icon={type.toLowerCase()}
+                  key={type}
+                  size='small'
+                  tooltip={_('settingsAclsButtonTooltip' + type)}
+                />
               )}
             </ButtonGroup>
+            <ActionButton tooltip='Select all' btnStyle='secondary' size='small' icon='add' handler={this._selectAll} />
           </div>
           <div className='form-group'>
-            <SelectRole ref='selectAction' onChange={this._handleSelectRole} />
+            <SelectRole onChange={this.linkState('action')} value={action} />
           </div>
           <ActionButton icon='add' btnStyle='success' handler={this._addAcl} disabled={isEmpty(subjects) || isEmpty(objects) || !action}>{_('aclCreate')}</ActionButton>
         </form>

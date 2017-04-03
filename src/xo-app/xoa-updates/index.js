@@ -21,14 +21,21 @@ import { serverVersion } from 'xo'
 
 import pkg from '../../../package'
 
-const promptForReload = () => confirm({
-  title: _('promptUpgradeReloadTitle'),
-  body: <p>{_('promptUpgradeReloadMessage')}</p>
-}).then(() => window.location.reload())
+let updateSource
+const promptForReload = (source, force) => {
+  if (force || (updateSource && source !== updateSource)) {
+    confirm({
+      title: _('promptUpgradeReloadTitle'),
+      body: <p>{_('promptUpgradeReloadMessage')}</p>
+    }).then(() => window.location.reload())
+  }
+  updateSource = source
+}
 
 if (+process.env.XOA_PLAN < 5) {
   xoaUpdater.start()
-  xoaUpdater.on('upgradeSuccessful', promptForReload)
+  xoaUpdater.on('upgradeSuccessful', source => promptForReload(source, !source))
+  xoaUpdater.on('upToDate', promptForReload)
 }
 
 const HEADER = <Container>

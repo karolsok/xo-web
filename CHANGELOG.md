@@ -1,19 +1,159 @@
 # ChangeLog
 
-## **5.3.1** (2016-10-27)
+## **5.7.0** (2017-03-31)
 
 ### Enhancements
 
-- Improve backup restore view [\#1609](https://github.com/vatesfr/xo-web/issues/1609)
-- Move location of NFS mount point [\#1405](https://github.com/vatesfr/xo-web/issues/1405)
-- Modify VLAN of an existing network [\#1092](https://github.com/vatesfr/xo-web/issues/1092)
-- Ability to export/import XO config [\#786](https://github.com/vatesfr/xo-web/issues/786)
+- Improve ActionButton error reporting [\#2048](https://github.com/vatesfr/xo-web/issues/2048)
+- Home view master checkbox UI issue [\#2027](https://github.com/vatesfr/xo-web/issues/2027)
+- HU Translation [\#2019](https://github.com/vatesfr/xo-web/issues/2019)
+- [Usage report] Add name for all objects [\#2017](https://github.com/vatesfr/xo-web/issues/2017)
+- [Home] Improve inter-types linkage [\#2012](https://github.com/vatesfr/xo-web/issues/2012)
+- Remove bootable checkboxes in VM creation [\#2007](https://github.com/vatesfr/xo-web/issues/2007)
+- Do not display bootable toggles for disks of non-PV VMs [\#1996](https://github.com/vatesfr/xo-web/issues/1996)
+- Try to match network VLAN for VM migration modal [\#1990](https://github.com/vatesfr/xo-web/issues/1990)
+- [Usage reports] Add VM names in addition to UUIDs [\#1984](https://github.com/vatesfr/xo-web/issues/1984)
+- Host affinity in "advanced" VM creation [\#1983](https://github.com/vatesfr/xo-web/issues/1983)
+- Add job tag in backup logs [\#1982](https://github.com/vatesfr/xo-web/issues/1982)
+- Possibility to add a label/description to servers [\#1965](https://github.com/vatesfr/xo-web/issues/1965)
+- Possibility to create shared VM in a resource set [\#1964](https://github.com/vatesfr/xo-web/issues/1964)
+- Clearer display of disabled (backup) jobs [\#1958](https://github.com/vatesfr/xo-web/issues/1958)
+- Job should have a configurable timeout [\#1956](https://github.com/vatesfr/xo-web/issues/1956)
+- Sort failed VMs in backup report [\#1950](https://github.com/vatesfr/xo-web/issues/1950)
+- Support for UNIX socket path [\#1944](https://github.com/vatesfr/xo-web/issues/1944)
+- Interface - Host Patching - Button Verbiage [\#1911](https://github.com/vatesfr/xo-web/issues/1911)
+- Display if a VM is in Self Service (and which group) [\#1905](https://github.com/vatesfr/xo-web/issues/1905)
+- Install supplemental pack on a whole pool [\#1896](https://github.com/vatesfr/xo-web/issues/1896)
+- Allow VM snapshots with ACLs [\#1865](https://github.com/vatesfr/xo-web/issues/1886)
+- Icon to indicate if a snapshot is quiesce [\#1858](https://github.com/vatesfr/xo-web/issues/1858)
+- Pool Ips input too permissive [\#1731](https://github.com/vatesfr/xo-web/issues/1731)
+- Select is going on top after each choice [\#1359](https://github.com/vatesfr/xo-web/issues/1359)
 
 ### Bug fixes
 
+- Missing objects should be displayed in backup edition [\#2052](https://github.com/vatesfr/xo-web/issues/2052)
+- Search bar content changes while typing [\#2035](https://github.com/vatesfr/xo-web/issues/2035)
+- VM.$guest_metrics.PV_drivers_up_to_date is deprecated in XS 7.1 [\#2024](https://github.com/vatesfr/xo-web/issues/2024)
+- Bootable flag selection checkbox for extra disk not fetched [\#1994](https://github.com/vatesfr/xo-web/issues/1994)
+- Home view − Changing type must reset paging [\#1993](https://github.com/vatesfr/xo-web/issues/1993)
+- XOSAN menu item should only be displayed to admins [\#1968](https://github.com/vatesfr/xo-web/issues/1968)
+- Object type change are not correctly handled in UI [\#1967](https://github.com/vatesfr/xo-web/issues/1967)
+- VM creation is stuck when using ISO/DVD as install method [\#1966](https://github.com/vatesfr/xo-web/issues/1966)
+- Install pack on whole pool fails [\#1957](https://github.com/vatesfr/xo-web/issues/1957)
+- Consoles are broken in next-release [\#1954](https://github.com/vatesfr/xo-web/issues/1954)
+- [VHD merge] Increase BAT when necessary [\#1939](https://github.com/vatesfr/xo-web/issues/1939)
+- Issue on VM restore time [\#1936](https://github.com/vatesfr/xo-web/issues/1936)
+- Two remotes should not be able to have the same name [\#1879](https://github.com/vatesfr/xo-web/issues/1879)
+- Selfservice limits not honored after VM creation [\#1695](https://github.com/vatesfr/xo-web/issues/1695)
+
+## **5.6.0** (2017-01-27)
+
+Reporting, LVM File level restore.
+
+### Enhancements
+
+- Do not stop patches install if already applied [\#1904](https://github.com/vatesfr/xo-web/issues/1904)
+- Improve scheduling UI [\#1893](https://github.com/vatesfr/xo-web/issues/1893)
+- Smart backup and tag [\#1885](https://github.com/vatesfr/xo-web/issues/1885)
+- Missing embeded API documention [\#1882](https://github.com/vatesfr/xo-web/issues/1882)
+- Add local DVD in CD selector [\#1880](https://github.com/vatesfr/xo-web/issues/1880)
+- File level restore for LVM [\#1878](https://github.com/vatesfr/xo-web/issues/1878)
+- Restore multiple files from file level restore [\#1877](https://github.com/vatesfr/xo-web/issues/1877)
+- Add a VM tab for host & pool views [\#1864](https://github.com/vatesfr/xo-web/issues/1864)
+- Icon to indicate if a snapshot is quiesce [\#1858](https://github.com/vatesfr/xo-web/issues/1858)
+- UI for disconnect hosts comp [\#1833](https://github.com/vatesfr/xo-web/issues/1833)
+- Eject all xs-guest.iso in a pool [\#1798](https://github.com/vatesfr/xo-web/issues/1798)
+- Display installed supplemental pack on host [\#1506](https://github.com/vatesfr/xo-web/issues/1506)
+- Install supplemental pack on host comp [\#1460](https://github.com/vatesfr/xo-web/issues/1460)
+- Pool-wide combined stats [\#1324](https://github.com/vatesfr/xo-web/issues/1324)
+
+### Bug fixes
+
+- IP-address not released when VM removed [\#1906](https://github.com/vatesfr/xo-web/issues/1906)
+- Interface broken due to new Bootstrap Alpha [\#1871](https://github.com/vatesfr/xo-web/issues/1871)
+- Self service recompute all limits broken [\#1866](https://github.com/vatesfr/xo-web/issues/1866)
+- Patch not found error for XS 6.5 [\#1863](https://github.com/vatesfr/xo-web/issues/1863)
+- Convert To Template issues [\#1855](https://github.com/vatesfr/xo-web/issues/1855)
+- Removing PIF seems to fail [\#1853](https://github.com/vatesfr/xo-web/issues/1853)
+- Depth should be >= 1 in backup creation [\#1851](https://github.com/vatesfr/xo-web/issues/1851)
+- Wrong link in Dashboard > Health [\#1850](https://github.com/vatesfr/xo-web/issues/1850)
+- Incorrect file dates shown in new File Restore feature [\#1840](https://github.com/vatesfr/xo-web/issues/1840)
+- IP allocation problem [\#1747](https://github.com/vatesfr/xo-web/issues/1747)
+- Selfservice limits not honored after VM creation [\#1695](https://github.com/vatesfr/xo-web/issues/1695)
+
+## **5.5.0** (2016-12-20)
+
+File level restore.
+
+### Enhancements
+
+- Better auto select network when migrate VM [\#1788](https://github.com/vatesfr/xo-web/issues/1788)
+- Plugin for passive backup job reporting in Nagios [\#1664](https://github.com/vatesfr/xo-web/issues/1664)
+- File level restore for delta backup [\#1590](https://github.com/vatesfr/xo-web/issues/1590)
+- Better select filters for ACLs [\#1515](https://github.com/vatesfr/xo-web/issues/1515)
+- All pools and "negative" filters [\#1503](https://github.com/vatesfr/xo-web/issues/1503)
+- VM copy with disk selection [\#826](https://github.com/vatesfr/xo-web/issues/826)
+- Disable metadata exports [\#1818](https://github.com/vatesfr/xo-web/issues/1818)
+
+### Bug fixes
+
+- Tool small selector [\#1832](https://github.com/vatesfr/xo-web/issues/1832)
+- Replication does not work from a VM created by a CR or delta backup [\#1811](https://github.com/vatesfr/xo-web/issues/1811)
+- Can't add a SSH key in VM creation [\#1805](https://github.com/vatesfr/xo-web/issues/1805)
+- Issue when no default SR in a pool [\#1804](https://github.com/vatesfr/xo-web/issues/1804)
+- XOA doesn't refresh after an update anymore [\#1801](https://github.com/vatesfr/xo-web/issues/1801)
+- Shortcuts not inhibited on inputs on Safari [\#1691](https://github.com/vatesfr/xo-web/issues/1691)
+
+## **5.4.0** (2016-11-23)
+
+### Enhancements
+
+- XML display in alerts [\#1776](https://github.com/vatesfr/xo-web/issues/1776)
+- Remove some view for non admin users [\#1773](https://github.com/vatesfr/xo-web/issues/1773)
+- Complex matcher should support matching boolean values [\#1768](https://github.com/vatesfr/xo-web/issues/1768)
+- Home SR view [\#1764](https://github.com/vatesfr/xo-web/issues/1764)
+- Filter on tag click [\#1763](https://github.com/vatesfr/xo-web/issues/1763)
+- Testable plugins [\#1749](https://github.com/vatesfr/xo-web/issues/1749)
+- Backup/Restore Design fix. [\#1734](https://github.com/vatesfr/xo-web/issues/1734)
+- Display the owner of a \(backup\) job [\#1733](https://github.com/vatesfr/xo-web/issues/1733)
+- Use paginated table for backup jobs [\#1726](https://github.com/vatesfr/xo-web/issues/1726)
+- SR view / Disks: should display snapshot VDIs [\#1723](https://github.com/vatesfr/xo-web/issues/1723)
+- Restored VM should have an identifiable name [\#1719](https://github.com/vatesfr/xo-web/issues/1719)
+- If host reboot action returns NO\_HOSTS\_AVAILABLE, ask to force [\#1717](https://github.com/vatesfr/xo-web/issues/1717)
+- Hide xo-server timezone in backups [\#1706](https://github.com/vatesfr/xo-web/issues/1706)
+- Enable hyperlink for Hostname for Issues [\#1700](https://github.com/vatesfr/xo-web/issues/1700)
+- Pool/network - Modify column [\#1696](https://github.com/vatesfr/xo-web/issues/1696)
+- UI - Plugins - Display a message if no plugins [\#1670](https://github.com/vatesfr/xo-web/issues/1670)
+- Display warning/error for delta backup on XS older than 6.5 [\#1647](https://github.com/vatesfr/xo-web/issues/1647)
+- XO without internet access doesn't work [\#1629](https://github.com/vatesfr/xo-web/issues/1629)
+- Improve backup restore view [\#1609](https://github.com/vatesfr/xo-web/issues/1609)
+- UI Enhancement - Acronym for dummy [\#1604](https://github.com/vatesfr/xo-web/issues/1604)
+- Slack XO plugin for backup report [\#1593](https://github.com/vatesfr/xo-web/issues/1593)
+- Expose XAPI exceptions in the UI [\#1481](https://github.com/vatesfr/xo-web/issues/1481)
+- Running VMs in the host overview, all VMs in the pool overview [\#1432](https://github.com/vatesfr/xo-web/issues/1432)
+- Move location of NFS mount point [\#1405](https://github.com/vatesfr/xo-web/issues/1405)
+- Home: Pool list - additionnal informations for pool [\#1226](https://github.com/vatesfr/xo-web/issues/1226)
+- Modify VLAN of an existing network [\#1092](https://github.com/vatesfr/xo-web/issues/1092)
+- Wrong instructions for CLI upgrade [\#787](https://github.com/vatesfr/xo-web/issues/787)
+- Ability to export/import XO config [\#786](https://github.com/vatesfr/xo-web/issues/786)
+- Test button for transport-email plugin [\#697](https://github.com/vatesfr/xo-web/issues/697)
+- Merge `scheduler` API into `schedule` [\#664](https://github.com/vatesfr/xo-web/issues/664)
+
+### Bug fixes
+
+- Should jobs be accessible to non admins? [\#1759](https://github.com/vatesfr/xo-web/issues/1759)
+- Schedules deletion is not working [\#1737](https://github.com/vatesfr/xo-web/issues/1737)
+- Editing a job from the jobs overview page does not work  [\#1736](https://github.com/vatesfr/xo-web/issues/1736)
+- Editing a schedule from jobs overview does not work  [\#1728](https://github.com/vatesfr/xo-web/issues/1728)
+- ACLs not correctly imported [\#1722](https://github.com/vatesfr/xo-web/issues/1722)
+- Some Bootstrap style broken [\#1721](https://github.com/vatesfr/xo-web/issues/1721)
 - Not properly sign out on auth token expiration [\#1711](https://github.com/vatesfr/xo-web/issues/1711)
+- Hosts/<UUID>/network status is incorrect [\#1702](https://github.com/vatesfr/xo-web/issues/1702)
 - Patches application fails "Found : Moved Temporarily" [\#1701](https://github.com/vatesfr/xo-web/issues/1701)
 - Password generation for user creation is not working [\#1678](https://github.com/vatesfr/xo-web/issues/1678)
+- \#/dashboard/health Remove All Orphaned VDIs  [\#1622](https://github.com/vatesfr/xo-web/issues/1622)
+- Create a new SR - CIFS/SAMBA Broken [\#1615](https://github.com/vatesfr/xo-web/issues/1615)
+- xo-cli --list-objects: truncated output ? 64k buffer limitation ? [\#1356](https://github.com/vatesfr/xo-web/issues/1356)
 
 ## **5.3.0** (2016-10-20)
 

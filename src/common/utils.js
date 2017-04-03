@@ -462,3 +462,65 @@ export const htmlFileToStream = file => {
 
   return stream
 }
+
+// ===================================================================
+
+export const resolveId = value =>
+  (value != null && typeof value === 'object' && 'id' in value)
+    ? value.id
+    : value
+
+export const resolveIds = params => {
+  for (const key in params) {
+    const param = params[key]
+    if (param != null && typeof param === 'object' && 'id' in param) {
+      params[key] = param.id
+    }
+  }
+  return params
+}
+
+// ===================================================================
+
+const OPs = {
+  '<': a => a < 0,
+  '<=': a => a <= 0,
+  '===': a => a === 0,
+  '>': a => a > 0,
+  '>=': a => a >= 0
+}
+
+const makeNiceCompare = compare => function () {
+  const { length } = arguments
+  if (length === 2) {
+    return compare(arguments[0], arguments[1])
+  }
+
+  let i = 1
+  let v1 = arguments[0]
+  let op, v2
+  while (i < length) {
+    op = arguments[i++]
+    v2 = arguments[i++]
+    if (!OPs[op](compare(v1, v2))) {
+      return false
+    }
+    v1 = v2
+  }
+  return true
+}
+
+export const compareVersions = makeNiceCompare((v1, v2) => {
+  v1 = v1.split('.')
+  v2 = v2.split('.')
+
+  for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
+    const n1 = +v1[i] || 0
+    const n2 = +v2[i] || 0
+
+    if (n1 < n2) return -1
+    if (n1 > n2) return 1
+  }
+
+  return 0
+})

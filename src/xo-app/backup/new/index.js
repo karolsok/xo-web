@@ -5,6 +5,7 @@ import delay from 'lodash/delay'
 import forEach from 'lodash/forEach'
 import GenericInput from 'json-schema-input'
 import Icon from 'icon'
+import isEmpty from 'lodash/isEmpty'
 import map from 'lodash/map'
 import moment from 'moment-timezone'
 import React from 'react'
@@ -57,25 +58,48 @@ const SMART_SCHEMA = {
       title: _('editBackupSmartStatusTitle'),
       description: 'The statuses of VMs to backup.' // FIXME: can't translate
     },
-    pools: {
-      type: 'array',
-      items: {
-        type: 'string',
-        'xo:type': 'pool'
-      },
-      title: _('editBackupSmartResidentOn')
+    poolsOptions: {
+      type: 'object',
+      title: _('editBackupSmartPools'),
+      properties: {
+        not: {
+          type: 'boolean',
+          title: _('editBackupNot'),
+          description: 'Toggle on to backup VMs that are NOT resident on these pools'
+        },
+        pools: {
+          type: 'array',
+          items: {
+            type: 'string',
+            'xo:type': 'pool'
+          },
+          title: _('editBackupSmartResidentOn'),
+          description: 'Not used if empty.' // FIXME: can't translate
+        }
+      }
     },
-    tags: {
-      type: 'array',
-      items: {
-        type: 'string',
-        'xo:type': 'tag'
-      },
-      title: _('editBackupSmartTagsTitle'),
-      description: 'VMs which contains at least one of these tags. Not used if empty.' // FIXME: can't translate
+    tagsOptions: {
+      type: 'object',
+      title: _('editBackupSmartTags'),
+      properties: {
+        not: {
+          type: 'boolean',
+          title: _('editBackupNot'),
+          description: 'Toggle on to backup VMs that do NOT contain these tags'
+        },
+        tags: {
+          type: 'array',
+          items: {
+            type: 'string',
+            'xo:type': 'tag'
+          },
+          title: _('editBackupSmartTagsTitle'),
+          description: 'VMs which contain at least one of these tags. Not used if empty.' // FIXME: can't translate
+        }
+      }
     }
   },
-  required: [ 'status', 'pools' ]
+  required: [ 'status', 'poolsOptions', 'tagsOptions' ]
 }
 const SMART_UI_SCHEMA = generateUiSchema(SMART_SCHEMA)
 
@@ -90,9 +114,14 @@ const COMMON_SCHEMA = {
       description: 'Back-up tag.' // FIXME: can't translate
     },
     _reportWhen: {
+      default: 'failure',
       enum: [ 'never', 'always', 'failure' ], // FIXME: can't translate
       title: _('editBackupReportTitle'),
-      description: 'When to send reports.' // FIXME: can't translate
+      description: [
+        'When to send reports.',
+        '',
+        'Plugins *tranport-email* and *backup-reports* need to be configured.'
+      ].join('\n')
     },
     enabled: {
       type: 'boolean',
@@ -105,7 +134,8 @@ const COMMON_SCHEMA = {
 const DEPTH_PROPERTY = {
   type: 'integer',
   title: _('editBackupDepthTitle'),
-  description: 'How many backups to rollover.' // FIXME: can't translate
+  description: 'How many backups to rollover.', // FIXME: can't translate
+  min: 1
 }
 
 const REMOTE_PROPERTY = {
@@ -120,11 +150,6 @@ const BACKUP_SCHEMA = {
     ...COMMON_SCHEMA.properties,
     depth: DEPTH_PROPERTY,
     remoteId: REMOTE_PROPERTY,
-    onlyMetadata: {
-      type: 'boolean',
-      title: 'Only MetaData',
-      description: 'No disks export.'
-    },
     compress: {
       type: 'boolean',
       title: 'Enable compression',
@@ -238,6 +263,12 @@ const BACKUP_METHOD_TO_INFO = {
 
 const DEFAULT_CRON_PATTERN = '0 0 * * *'
 
+function negatePattern (pattern, not = true) {
+  return not
+    ? { __not: pattern }
+    : pattern
+}
+
 @addSubscriptions({
   currentUser: subscribeCurrentUser
 })
@@ -267,10 +298,12 @@ export default class New extends Component {
       })
       return
     }
+
     this.setState({
       backupInfo: BACKUP_METHOD_TO_INFO[job.method],
       cronPattern: schedule.cron,
       owner: job.userId,
+      timeout: job.timeout && job.timeout / 1e3,
       timezone: schedule.timezone || null
     }, () => delay(this._populateForm, 250, job)) // Work around.
     // Without the delay, some selects are not always ready to load a value
@@ -303,8 +336,8 @@ export default class New extends Component {
       if (values[1].type === 'map') {
         // Smart backup.
         const {
-          $pool: { __or: pools },
-          tags: { __or: tags } = {},
+          $pool: poolsOptions = {},
+          tags: tagsOptions = {},
           power_state: status = 'All'
         } = values[1].collection.pattern
 
@@ -314,9 +347,15 @@ export default class New extends Component {
           smartBackupMode: true
         }, () => {
           vmsInput.value = {
-            pools,
+            poolsOptions: {
+              pools: poolsOptions.__not ? poolsOptions.__not.__or : poolsOptions.__or,
+              not: !!poolsOptions.__not
+            },
             status,
-            tags: map(tags, tag => tag[0])
+            tagsOptions: {
+              tags: map(tagsOptions.__not ? tagsOptions.__not.__or : tagsOptions.__or, tag => tag[0]),
+              not: !!tagsOptions.__not
+            }
           }
         })
       } else {
@@ -337,9 +376,14 @@ export default class New extends Component {
     const {
       backupInfo,
       smartBackupMode,
+      timeout,
       timezone,
       owner
     } = this.state
+
+    const { pools, not: notPools } = vmsInputValue.poolsOptions || {}
+    const { tags, not: notTags } = vmsInputValue.tagsOptions || {}
+    const formattedTags = map(tags, tag => [ tag ])
 
     const paramsVector = !smartBackupMode
       ? {
@@ -361,9 +405,13 @@ export default class New extends Component {
           collection: {
             type: 'fetchObjects',
             pattern: {
-              $pool: !vmsInputValue.pools.length ? undefined : { __or: vmsInputValue.pools },
+              $pool: isEmpty(pools)
+                ? undefined
+                : negatePattern({ __or: pools }, notPools),
               power_state: vmsInputValue.status === 'All' ? undefined : vmsInputValue.status,
-              tags: !vmsInputValue.tags.length ? undefined : { __or: map(vmsInputValue.tags, tag => [ tag ]) },
+              tags: isEmpty(tags)
+                ? undefined
+                : negatePattern({ __or: formattedTags }, notTags),
               type: 'VM'
             }
           },
@@ -379,7 +427,8 @@ export default class New extends Component {
       key: backupInfo.jobKey,
       method: backupInfo.method,
       paramsVector,
-      userId: owner
+      userId: owner,
+      timeout: timeout ? timeout * 1e3 : undefined
     }
 
     // Update backup schedule.
@@ -446,8 +495,11 @@ export default class New extends Component {
   }
 
   _handleBackupSelection = event => {
+    const method = event.target.value
+
     this.setState({
-      backupInfo: BACKUP_METHOD_TO_INFO[event.target.value]
+      showVersionWarning: method === 'vm.rollingDeltaBackup' || method === 'vm.deltaCopy',
+      backupInfo: BACKUP_METHOD_TO_INFO[method]
     })
   }
 
@@ -461,13 +513,15 @@ export default class New extends Component {
     type === 'user' && permission === 'admin'
 
   render () {
+    const { state } = this
     const {
       backupInfo,
       cronPattern,
       smartBackupMode,
       timezone,
-      owner
-    } = this.state
+      owner,
+      showVersionWarning
+    } = state
 
     return process.env.XOA_PLAN > 1
       ? (
@@ -482,8 +536,12 @@ export default class New extends Component {
                       onChange={this.linkState('owner', 'id')}
                       predicate={this._subjectPredicate}
                       required
-                      value={owner}
+                      value={owner || null}
                     />
+                  </fieldset>
+                  <fieldset className='form-group'>
+                    <label>{_('jobTimeoutPlaceHolder')}</label>
+                    <input type='number' onChange={this.linkState('timeout')} value={state.timeout} className='form-control' />
                   </fieldset>
                   <fieldset className='form-group'>
                     <label htmlFor='selectBackup'>{_('newBackupSelection')}</label>
@@ -500,6 +558,9 @@ export default class New extends Component {
                       )}
                     </select>
                   </fieldset>
+                  {showVersionWarning && <div className='alert alert-warning' role='alert'>
+                    <Icon icon='error' /> {_('backupVersionWarning')}
+                  </div>}
                   <form id='form-new-vm-backup'>
                     {backupInfo && <div>
                       <GenericInput

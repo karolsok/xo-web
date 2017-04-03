@@ -13,9 +13,9 @@ import propTypes from 'prop-types'
 import React from 'react'
 import SingleLineRow from 'single-line-row'
 import some from 'lodash/some'
+import StateButton from 'state-button'
 import TabButton from 'tab-button'
 import Tooltip from 'tooltip'
-import { ButtonGroup } from 'react-bootstrap-4/lib'
 import { Container, Row, Col } from 'grid'
 import { createSelector } from 'selectors'
 import { DragDropContext, DragSource, DropTarget } from 'react-dnd'
@@ -101,6 +101,7 @@ class NewDisk extends Component {
   )
 
   render () {
+    const { vm } = this.props
     const { formatMessage } = this.props.intl
 
     return <form id='newDiskForm'>
@@ -117,7 +118,8 @@ class NewDisk extends Component {
         </div>
         {' '}
         <div className='form-group'>
-          {_('vdbBootable')} <Toggle ref='bootable' /> {_('vdbReadonly')} <Toggle ref='readOnly' />
+          {vm.virtualizationMode === 'pv' && <span>{_('vdbBootable')} <Toggle ref='bootable' /> </span>}
+          <span>{_('vdbReadonly')} <Toggle ref='readOnly' /></span>
         </div>
         <span className='pull-right'>
           <ActionButton form='newDiskForm' icon='add' btnStyle='primary' handler={this._createDisk}>{_('vdbCreate')}</ActionButton>
@@ -169,7 +171,9 @@ class AttachDisk extends Component {
   }
 
   render () {
+    const { vm } = this.props
     const { vdi } = this.state
+
     return <form id='attachDiskForm'>
       <div className='form-group'>
         <SelectVdi
@@ -180,7 +184,8 @@ class AttachDisk extends Component {
       </div>
       {vdi && <fieldset className='form-inline'>
         <div className='form-group'>
-          {_('vdbBootable')} <Toggle ref='bootable' /> {_('vdbReadonly')} <Toggle ref='readOnly' />
+          {vm.virtualizationMode === 'pv' && <span>{_('vdbBootable')} <Toggle ref='bootable' /> </span>}
+          <span>{_('vdbReadonly')} <Toggle ref='readOnly' /></span>
         </div>
         <span className='pull-right'>
           <ActionButton icon='add' form='attachDiskForm' btnStyle='primary' handler={this._addVdi}>{_('vdbCreate')}</ActionButton>
@@ -226,7 +231,8 @@ const orderItemTarget = {
   isDragging: propTypes.bool.isRequired,
   id: propTypes.any.isRequired,
   item: propTypes.object.isRequired,
-  move: propTypes.func.isRequired
+  move: propTypes.func.isRequired,
+  showBootableFlag: propTypes.bool
 })
 class OrderItem extends Component {
   _toggle = checked => {
@@ -236,7 +242,7 @@ class OrderItem extends Component {
   }
 
   render () {
-    const { item, connectDragSource, connectDropTarget } = this.props
+    const { item, connectDragSource, connectDropTarget, showBootableFlag } = this.props
     return connectDragSource(connectDropTarget(
       <li className='list-group-item'>
         <Icon icon='grab' />
@@ -244,9 +250,9 @@ class OrderItem extends Component {
         <Icon icon='grab' />
         {' '}
         {item.text}
-        <span className='pull-right'>
+        {showBootableFlag && <span className='pull-right'>
           <Toggle value={item.active} onChange={this._toggle} />
-        </span>
+        </span>}
       </li>
     ))
   }
@@ -290,6 +296,7 @@ class BootOrder extends Component {
   }
 
   render () {
+    const { vm } = this.props
     const { order } = this.state
 
     return <form>
@@ -301,6 +308,7 @@ class BootOrder extends Component {
           // FIXME missing translation
           item={item}
           move={this._moveOrderItem}
+          showBootableFlag={vm.virtualizationMode === 'pv'}
         />)}
       </ul>
       <fieldset className='form-inline'>
@@ -441,8 +449,9 @@ export default class TabDisks extends Component {
                   <th>{_('vdiNameDescription')}</th>
                   <th>{_('vdiSize')}</th>
                   <th>{_('vdiSr')}</th>
-                  <th>{_('vdbBootableStatus')}</th>
+                  {vm.virtualizationMode === 'pv' && <th>{_('vdbBootableStatus')}</th>}
                   <th>{_('vdbStatus')}</th>
+                  <th className='text-xs-right'>{_('vbdAction')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -475,77 +484,53 @@ export default class TabDisks extends Component {
                       </XoSelect>
                     }
                     </td>
-                    <td>
+                    {vm.virtualizationMode === 'pv' && <td>
                       <Toggle
                         value={vbd.bootable}
                         onChange={bootable => setBootableVbd(vbd, bootable)}
                       />
-                    </td>
+                    </td>}
                     <td>
-                      {vbd.attached
-                        ? <span>
-                          <span className='tag tag-success'>
-                            {_('vbdStatusConnected')}
-                          </span>
-                          <ButtonGroup className='pull-right'>
-                            <Tooltip content={_('vdiMigrate')}>
-                              <ActionRowButton
-                                btnStyle='default'
-                                icon='vdi-migrate'
-                                handler={this._migrateVdi}
-                                handlerParam={vdi}
-                              />
-                            </Tooltip>
-                            <Tooltip content={_('vbdDisconnect')}>
-                              <ActionRowButton
-                                btnStyle='default'
-                                icon='disconnect'
-                                handler={disconnectVbd}
-                                handlerParam={vbd}
-                              />
-                            </Tooltip>
-                          </ButtonGroup>
-                        </span>
-                        : <span>
-                          <span className='tag tag-default'>
-                            {_('vbdStatusDisconnected')}
-                          </span>
-                          <ButtonGroup className='pull-right'>
-                            <Tooltip content={_('vdiMigrate')}>
-                              <ActionRowButton
-                                btnStyle='default'
-                                icon='vdi-migrate'
-                                handler={this._migrateVdi}
-                                handlerParam={vdi}
-                              />
-                            </Tooltip>
-                            {isVmRunning(vm) &&
-                              <Tooltip content={_('vbdConnect')}>
-                                <ActionRowButton
-                                  btnStyle='default'
-                                  icon='connect'
-                                  handler={connectVbd}
-                                  handlerParam={vbd}
-                                />
-                              </Tooltip>
-                            }
-                            <Tooltip content={_('vdiForget')}>
-                              <ActionRowButton
-                                btnStyle='default'
-                                icon='vdi-forget'
-                                handler={deleteVbd}
-                                handlerParam={vbd}
-                              />
-                            </Tooltip>
-                            <Tooltip content={_('vdiRemove')}>
-                              <ActionRowButton
-                                btnStyle='default'
-                                icon='vdi-remove'
-                                handler={deleteVdi}
-                                handlerParam={vdi}
-                              />
-                            </Tooltip>
-                          </ButtonGroup>
+                      <StateButton
+                        disabledLabel={_('vbdStatusDisconnected')}
+                        disabledHandler={isVmRunning(vm) && connectVbd}
+                        disabledTooltip={_('vbdConnect')}
+
+                        enabledLabel={_('vbdStatusConnected')}
+                        enabledHandler={disconnectVbd}
+                        enabledTooltip={_('vbdDisconnect')}
+
+                        handlerParam={vbd}
+                        state={vbd.attached}
+                      />
+                    </td>
+                    <td className='text-xs-right'>
+                      <Tooltip content={_('vdiMigrate')}>
+                        <ActionRowButton
+                          btnStyle='default'
+                          icon='vdi-migrate'
+                          handler={this._migrateVdi}
+                          handlerParam={vdi}
+                        />
+                      </Tooltip>
+                      {!vbd.attached &&
+                        <span>
+                          <Tooltip content={_('vdiForget')}>
+                            <ActionRowButton
+                              btnStyle='default'
+                              icon='vdi-forget'
+                              handler={deleteVbd}
+                              handlerParam={vbd}
+                            />
+                          </Tooltip>
+                          <Tooltip content={_('vdiRemove')}>
+                            <ActionRowButton
+                              btnStyle='default'
+                              icon='vdi-remove'
+                              handler={deleteVdi}
+                              handlerParam={vdi}
+                            />
+                          </Tooltip>
                         </span>
                       }
                     </td>

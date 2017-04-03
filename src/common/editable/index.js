@@ -394,11 +394,11 @@ const MAP_TYPE_SELECT = {
   value: propTypes.oneOfType([
     propTypes.string,
     propTypes.object
-  ]).isRequired
+  ])
 })
 export class XoSelect extends Editable {
   get value () {
-    return this.refs.select.value
+    return this.state.value
   }
 
   _renderDisplay () {
@@ -406,9 +406,8 @@ export class XoSelect extends Editable {
       <span>{this.props.value[this.props.labelProp]}</span>
   }
 
-  _onChange = object => {
-    object ? this._save() : this._closeEdition()
-  }
+  _onChange = object =>
+    this.setState({ value: object }, object && this._save)
 
   _renderEdition () {
     const {
@@ -432,7 +431,6 @@ export class XoSelect extends Editable {
         autoFocus
         disabled={saving}
         onChange={this._onChange}
-        ref='select'
       />
     </a>
   }

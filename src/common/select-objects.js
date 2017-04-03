@@ -1,27 +1,38 @@
 import React from 'react'
-import assign from 'lodash/assign'
 import classNames from 'classnames'
-import filter from 'lodash/filter'
-import flatten from 'lodash/flatten'
-import forEach from 'lodash/forEach'
-import groupBy from 'lodash/groupBy'
-import includes from 'lodash/includes'
-import isEmpty from 'lodash/isEmpty'
-import keyBy from 'lodash/keyBy'
-import keys from 'lodash/keys'
-import map from 'lodash/map'
-import mapValues from 'lodash/mapValues'
-import pick from 'lodash/pick'
-import sortBy from 'lodash/sortBy'
+import Icon from 'icon'
 import store from 'store'
+import Tooltip from 'tooltip'
+import { Button } from 'react-bootstrap-4/lib'
 import { parse as parseRemote } from 'xo-remote-parser'
+import {
+  assign,
+  filter,
+  flatten,
+  forEach,
+  groupBy,
+  includes,
+  isArray,
+  isEmpty,
+  isInteger,
+  isString,
+  keyBy,
+  keys,
+  map,
+  mapValues,
+  pick,
+  sortBy,
+  toArray
+} from 'lodash'
 
 import _ from './intl'
+import uncontrollableInput from 'uncontrollable-input'
 import Component from './base-component'
 import propTypes from './prop-types'
 import renderXoItem from './render-xo-item'
 import { Select } from './form'
 import {
+  createCollectionWrapper,
   createFilter,
   createGetObjectsOfType,
   createGetTags,
@@ -47,6 +58,26 @@ import {
 
 // ===================================================================
 
+// react-select's line-height is 1.4
+// https://github.com/JedWatson/react-select/blob/916ab0e62fc7394be8e24f22251c399a68de8b1c/less/multi.less#L33
+// while bootstrap button's line-height is 1.25
+// https://github.com/twbs/bootstrap/blob/959c4e527c6ef69623928db638267ba1c370479d/scss/_variables.scss#L342
+const ADDON_BUTTON_STYLE = { lineHeight: '1.4' }
+
+const getIds = value => value == null || isString(value) || isInteger(value)
+  ? value
+  : isArray(value)
+    ? map(value, getIds)
+    : value.id
+
+const getOption = (object, container) => ({
+  label: container
+    ? `${getLabel(object)} ${getLabel(container)}`
+    : getLabel(object),
+  value: object.id,
+  xoItem: object
+})
+
 const getLabel = object =>
   object.name_label ||
   object.name ||
@@ -54,6 +85,10 @@ const getLabel = object =>
   (object.value && object.value.name) ||
   object.value ||
   object.label
+
+const options = props => ({
+  defaultValue: props.multi ? [] : undefined
+})
 
 // ===================================================================
 
@@ -86,12 +121,11 @@ const getLabel = object =>
 @propTypes({
   autoFocus: propTypes.bool,
   clearable: propTypes.bool,
-  defaultValue: propTypes.any,
   disabled: propTypes.bool,
+  hasSelectAll: propTypes.bool,
   multi: propTypes.bool,
   onChange: propTypes.func,
   placeholder: propTypes.any.isRequired,
-  predicate: propTypes.func,
   required: propTypes.bool,
   value: propTypes.any,
   xoContainers: propTypes.array,
@@ -101,145 +135,110 @@ const getLabel = object =>
   ]).isRequired
 })
 export class GenericSelect extends Component {
-  constructor (props) {
-    super(props)
-    this.state = {
-      value: this._setValue(props.value || props.defaultValue, props)
+  componentDidUpdate (prevProps) {
+    const { onChange, xoObjects } = this.props
+
+    if (!onChange || prevProps.xoObjects === xoObjects) {
+      return
     }
-  }
 
-  _getValue (xoObjectsById = this.state.xoObjectsById, props = this.props) {
-    const { value } = this.state
+    const ids = this._getSelectValue()
+    const objectsById = this._getObjectsById()
 
-    if (props.multi) {
-      // Returns the values of the selected objects
-      // if they are contained in xoObjectsById.
-      return mapPlus(value, (value, push) => {
-        const o = xoObjectsById[value.value !== undefined ? value.value : value]
+    if (!isArray(ids)) {
+      ids && !objectsById[ids] && onChange(undefined)
+    } else {
+      let shouldTriggerOnChange
 
-        if (o) {
-          push(o)
+      const newValue = isArray(ids) && mapPlus(ids, (id, push) => {
+        const object = objectsById[id]
+
+        if (object) {
+          push(object)
+        } else {
+          shouldTriggerOnChange = true
         }
       })
-    }
 
-    return xoObjectsById[value.value || value] || ''
-  }
-
-  // Supports id strings and objects.
-  _setValue (value, props = this.props) {
-    if (props.multi) {
-      return map(value, object => object.id !== undefined ? object.id : object)
-    }
-
-    return (value != null)
-      ? value.id !== undefined ? value.id : value
-      : ''
-  }
-
-  componentWillMount () {
-    const { props } = this
-
-    this.setState({
-      ...this._computeOptions(props)
-    })
-  }
-
-  componentWillReceiveProps (newProps) {
-    const { props } = this
-    const { value, xoContainers, xoObjects } = newProps
-
-    if (
-      xoContainers !== props.xoContainers ||
-      xoObjects !== props.xoObjects
-    ) {
-      const {
-        options,
-        xoObjectsById
-      } = this._computeOptions(newProps)
-
-      const value = this._getValue(xoObjectsById, newProps)
-
-      this.setState({
-        options,
-        value: this._setValue(value, newProps),
-        xoObjectsById
-      })
-    }
-
-    if (value !== props.value) {
-      this.setState({
-        value: this._setValue(value, newProps)
-      })
+      if (shouldTriggerOnChange) {
+        this.props.onChange(newValue)
+      }
     }
   }
 
-  _computeOptions ({ xoContainers, xoObjects }) {
-    if (!xoContainers) {
-      if (process.env.NODE_ENV !== 'production') {
-        if (!Array.isArray(xoObjects)) {
-          throw new Error('without xoContainers, xoObjects must be an array')
+  _getObjectsById = createSelector(
+    () => this.props.xoObjects,
+    objects => keyBy(
+      isArray(objects)
+        ? objects
+        : flatten(toArray(objects)),
+      'id'
+    )
+  )
+
+  _getOptions = createSelector(
+    () => this.props.xoContainers,
+    () => this.props.xoObjects,
+    (containers, objects) => { // createCollectionWrapper with a depth?
+      const { name } = this.constructor
+
+      if (!containers) {
+        if (__DEV__ && !isArray(objects)) {
+          throw new Error(`${name}: without xoContainers, xoObjects must be an array`)
         }
+
+        return map(objects, getOption)
       }
 
-      return {
-        xoObjectsById: keyBy(xoObjects, 'id'),
-        options: map(xoObjects, object => ({
-          label: getLabel(object),
-          value: object.id,
-          xoItem: object
-        }))
+      if (__DEV__ && isArray(objects)) {
+        throw new Error(`${name}: with xoContainers, xoObjects must be an object`)
       }
-    }
 
-    if (process.env.NODE_ENV !== 'production') {
-      if (Array.isArray(xoObjects)) {
-        throw new Error('with xoContainers, xoObjects must be an object')
-      }
-    }
+      const options = []
+      forEach(containers, container => {
+        options.push({
+          disabled: true,
+          xoItem: container
+        })
 
-    const options = []
-    const xoObjectsById = {}
-
-    forEach(xoContainers, container => {
-      const containerObjects = keyBy(xoObjects[container.id], 'id')
-      assign(xoObjectsById, containerObjects)
-
-      options.push({
-        disabled: true,
-        xoItem: container
+        forEach(objects[container.id], object => {
+          options.push(getOption(object, container))
+        })
       })
+      return options
+    }
+  )
 
-      options.push.apply(options, map(containerObjects, object => ({
-        label: `${getLabel(object)} ${getLabel(container)}`,
-        value: object.id,
-        xoItem: object
-      })))
-    })
+  _getSelectValue = createSelector(
+    () => this.props.value,
+    createCollectionWrapper(getIds)
+  )
 
-    return { xoObjectsById, options }
-  }
+  _getNewSelectedObjects = createSelector(
+    this._getObjectsById,
+    value => value,
+    (objectsById, value) => value == null
+      ? value
+      : isArray(value)
+        ? map(value, value => objectsById[value.value])
+        : objectsById[value.value]
+  )
 
-  get value () {
-    return this._getValue()
-  }
-
-  set value (value) {
-    this.setState({
-      value: this._setValue(value)
-    })
-  }
-
-  _handleChange = value => {
+  _onChange = value => {
     const { onChange } = this.props
+    if (onChange) {
+      onChange(this._getNewSelectedObjects(value))
+    }
+  }
 
-    this.setState({
-      value: this._setValue(value)
-    }, onChange && (() => onChange(this.value)))
+  _selectAll = () => {
+    this._onChange(
+      filter(this._getOptions(), ({ disabled }) => !disabled)
+    )
   }
 
   // GroupBy: Display option with margin if not disabled and containers exists.
-  _renderOption = option => (
+  _renderOption = option =>
     <span
       className={classNames(
         !option.disabled && this.props.xoContainers && 'ml-1'
@@ -247,56 +246,68 @@ export class GenericSelect extends Component {
     >
       {renderXoItem(option.xoItem)}
     </span>
-  )
 
   render () {
-    const { props, state } = this
+    const {
+      autoFocus,
+      disabled,
+      hasSelectAll,
+      multi,
+      placeholder,
+      required,
 
-    return (
-      <Select
-        autofocus={props.autoFocus}
-        clearable={props.clearable == null ? props.multi || !props.required : props.clearable}
-        disabled={props.disabled}
-        multi={props.multi}
-        onChange={this._handleChange}
-        openOnFocus
-        optionRenderer={this._renderOption}
-        options={state.options}
-        placeholder={props.placeholder}
-        required={props.required}
-        value={state.value}
-        valueRenderer={this._renderOption}
-      />
-    )
+      clearable = Boolean(multi || !required)
+    } = this.props
+
+    const select = <Select
+      {...{
+        autofocus: autoFocus,
+        clearable,
+        disabled,
+        multi,
+        placeholder,
+        required
+      }}
+
+      onChange={this._onChange}
+      openOnFocus
+      optionRenderer={this._renderOption}
+      options={this._getOptions()}
+      value={this._getSelectValue()}
+      valueRenderer={this._renderOption}
+    />
+
+    if (!multi || !hasSelectAll) {
+      return select
+    }
+
+    // `hasSelectAll` should be provided by react-select after this pull request has been merged:
+    // https://github.com/JedWatson/react-select/pull/748
+    // TODO: remove once it has been merged upstream.
+    return <div className='input-group'>
+      {select}
+      <span className='input-group-btn'>
+        <Tooltip content={_('selectAll')}>
+          <Button type='button' bsStyle='secondary' onClick={this._selectAll} style={ADDON_BUTTON_STYLE}>
+            <Icon icon='add' />
+          </Button>
+        </Tooltip>
+      </span>
+    </div>
   }
 }
 
-const makeStoreSelect = (createSelectors, props) => connectStore(
-  createSelectors,
-  { withRef: true }
-)(
-  class extends Component {
-    get value () {
-      return this.refs.select.value
-    }
-
-    set value (value) {
-      this.refs.select.value = value
-    }
-
-    render () {
-      return (
-        <GenericSelect
-          ref='select'
-          {...props}
-          {...this.props}
-        />
-      )
-    }
-  }
+const makeStoreSelect = (createSelectors, defaultProps) => uncontrollableInput(options)(
+  connectStore(createSelectors)(
+    props =>
+      <GenericSelect
+        {...defaultProps}
+        {...props}
+      />
+  )
 )
 
-const makeSubscriptionSelect = (subscribe, props) => (
+const makeSubscriptionSelect = (subscribe, props) => uncontrollableInput(options)(
   class extends Component {
     constructor (props) {
       super(props)
@@ -325,14 +336,6 @@ const makeSubscriptionSelect = (subscribe, props) => (
       )
     }
 
-    get value () {
-      return this.refs.select.value
-    }
-
-    set value (value) {
-      this.refs.select.value = value
-    }
-
     componentWillMount () {
       this.componentWillUnmount = subscribe(::this.setState)
     }
@@ -340,7 +343,6 @@ const makeSubscriptionSelect = (subscribe, props) => (
     render () {
       return (
         <GenericSelect
-          ref='select'
           {...props}
           {...this.props}
           xoObjects={this._getFilteredXoObjects()}
@@ -521,11 +523,11 @@ export const SelectTag = makeStoreSelect((_, props) => ({
 }), { placeholder: _('selectTags') })
 
 export const SelectHighLevelObject = makeStoreSelect(() => {
-  const getHosts = createGetObjectsOfType('host')
-  const getNetworks = createGetObjectsOfType('network')
-  const getPools = createGetObjectsOfType('pool')
-  const getSrs = createGetObjectsOfType('SR')
-  const getVms = createGetObjectsOfType('VM')
+  const getHosts = createGetObjectsOfType('host').filter(getPredicate)
+  const getNetworks = createGetObjectsOfType('network').filter(getPredicate)
+  const getPools = createGetObjectsOfType('pool').filter(getPredicate)
+  const getSrs = createGetObjectsOfType('SR').filter(getPredicate)
+  const getVms = createGetObjectsOfType('VM').filter(getPredicate)
 
   const getHighLevelObjects = createSelector(
     getHosts,
